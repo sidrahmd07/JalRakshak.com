@@ -1,0 +1,24 @@
+(() => {
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const keys={reports:"jalrakshak_reports_v1",pledges:"jalrakshak_pledges_v1",lessons:"jalrakshak_lessons_v1"};
+const demo=[{type:"Leaking public tap",location:"Near the community park",description:"A public tap appears to be dripping continuously.",date:"Demo entry"},{type:"Overflowing tank",location:"Residential lane",description:"Water was spilling from an overhead tank.",date:"Demo entry"},{type:"Polluted water source",location:"Small pond near the market",description:"Litter was visible close to the water edge.",date:"Demo entry"}];
+const read=(k,f)=>{try{return JSON.parse(localStorage.getItem(k))??f}catch{return f}};
+let reports=read(keys.reports,demo),pledges=read(keys.pledges,[]),lessons=read(keys.lessons,[]);
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
+const safe=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const date=()=>new Intl.DateTimeFormat(undefined,{month:"short",day:"numeric"}).format(new Date());
+let toastTimer;function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),2500)}
+function renderReports(){ $("#historyCount").textContent=String(reports.length).padStart(2,"0");$("#reportCount").textContent=String(reports.length).padStart(2,"0");$("#dashReports").textContent=reports.length;
+$("#reports").innerHTML=reports.length?reports.slice(0,6).map(r=>`<article class="report-item"><i>⌁</i><div><b>${safe(r.type)}</b><p>${safe(r.location)}${r.description?" · "+safe(r.description):""}</p></div><time>${safe(r.date||"Saved")}</time></article>`).join(""):'<div class="empty">No observations saved yet.<br>Add a concern to start your local history.</div>'}
+function renderPledges(){$$("#pledgeList input").forEach(i=>i.checked=pledges.includes(i.value));let n=pledges.length;$("#progress").textContent=n;$("#fill").style.width=n/4*100+"%";$("#progressText").textContent=n===4?"Wonderful — all four habits are on your list. Keep going!":n?"Great start. Keep practising these habits and add another when ready.":"Choose one habit to start your ripple.";$("#pledgeCount").textContent=String(n).padStart(2,"0");$("#dashPledges").textContent=n+"/4"}
+function renderLessons(){$$(".learn-copy button").forEach(b=>{let done=lessons.includes(+b.dataset.lesson);b.classList.toggle("done",done);b.innerHTML=done?'Learned <span>✓</span>':'Mark as learned <span>＋</span>'});$("#lessonCount").textContent=String(lessons.length).padStart(2,"0");$("#dashLessons").textContent=lessons.length+"/4"}
+$("#reportForm").addEventListener("submit",e=>{e.preventDefault();let location=$("#location").value.trim();if(!location)return;reports.unshift({type:$("#type").value,location,description:$("#description").value.trim(),date:date()});save(keys.reports,reports);renderReports();e.target.reset();$("#message").textContent="Observation saved in this browser.";toast("Observation saved locally.")});
+$("#clear").addEventListener("click",()=>{if(!reports.length)return toast("Local history is already empty.");if(confirm("Clear all observations saved in this browser? This cannot be undone.")){reports=[];save(keys.reports,reports);renderReports();toast("Local history cleared.")}});
+$$('#pledgeList input').forEach(i=>i.addEventListener("change",()=>{pledges=i.checked?[...new Set([...pledges,i.value])]:pledges.filter(v=>v!==i.value);renderPledges()}));
+$("#savePledges").addEventListener("click",()=>{save(keys.pledges,pledges);toast(pledges.length?"Pledges saved on this device.":"Choose a habit before saving.")});
+$$(".learn-copy button").forEach(b=>b.addEventListener("click",()=>{let id=+b.dataset.lesson;lessons=lessons.includes(id)?lessons.filter(v=>v!==id):[...lessons,id];save(keys.lessons,lessons);renderLessons();toast(lessons.includes(id)?"Lesson marked as learned.":"Lesson marked as not completed.")}));
+$("#menu").addEventListener("click",()=>$("#nav").classList.toggle("open"));$$("nav a").forEach(a=>a.addEventListener("click",()=>$("#nav").classList.remove("open")));
+if("IntersectionObserver"in window){let obs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("visible");obs.unobserve(e.target)}}),{threshold:.12});$$(".reveal").forEach((el,i)=>{el.style.transitionDelay=(i%4)*70+"ms";obs.observe(el)})}else $$(".reveal").forEach(e=>e.classList.add("visible"));
+const enter=()=>$("#intro").classList.add("hide");window.addEventListener("load",()=>setTimeout(enter,1750));setTimeout(enter,3000);
+renderReports();renderPledges();renderLessons();
+})();
